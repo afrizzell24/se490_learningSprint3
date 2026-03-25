@@ -98,8 +98,10 @@ private void copyExternalRelations(XSSFSheet srcSheet, XSSFSheet clonedSheet) {
     try {
         for (PackageRelationship pr : srcSheet.getPackagePart().getRelationships()) {
             if (pr.getTargetMode() == TargetMode.EXTERNAL) {
-                clonedSheet.getPackagePart().addExternalRelationship(pr.getTargetURI().toASCIIString(),
-                        pr.getRelationshipType(), pr.getId());
+                clonedSheet.getPackagePart().addExternalRelationship(
+                        pr.getTargetURI().toASCIIString(),
+                        pr.getRelationshipType(),
+                        pr.getId());
             }
         }
     } catch (InvalidFormatException e) {
