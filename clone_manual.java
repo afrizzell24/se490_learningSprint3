@@ -26,7 +26,7 @@ public XSSFSheet cloneSheet(int sheetNum, String newName) {
     XSSFSheet clonedSheet = createSheet(newName);
 
     // Copy relations and data to the new sheet
-    XSSFDrawing drawing = cloneSheetRelations(srcSheet, clonedSheet);
+    XSSFDrawing drawing = cloneSheetRelationsExceptDrawing(srcSheet, clonedSheet);
     cloneSheetData(srcSheet, clonedSheet);
 
     // Check for unsupported features
@@ -66,9 +66,9 @@ private String getNewValidSheetName(String newName) {
  * 
  * @param srcSheet
  * @param clonedSheet
- * @return the sheet drawing to be cloned
+ * @return the sheet drawing to be cloned later
  */
-private XSSFDrawing cloneSheetRelations(XSSFSheet srcSheet, XSSFSheet clonedSheet) {
+private XSSFDrawing cloneSheetRelationsExceptDrawing(XSSFSheet srcSheet, XSSFSheet clonedSheet) {
     List<RelationPart> rels = srcSheet.getRelationParts();
     // Copy all relations except for the drawing relation
     XSSFDrawing drawing = null;
@@ -84,7 +84,7 @@ private XSSFDrawing cloneSheetRelations(XSSFSheet srcSheet, XSSFSheet clonedShee
         addRelation(rp, clonedSheet);
     }
 
-    copyExternalRelations(srcSheet, clonedSheet);
+    cloneExternalRelations(srcSheet, clonedSheet);
     return drawing;
 }
 
@@ -94,7 +94,7 @@ private XSSFDrawing cloneSheetRelations(XSSFSheet srcSheet, XSSFSheet clonedShee
  * @param srcSheet
  * @param clonedSheet
  */
-private void copyExternalRelations(XSSFSheet srcSheet, XSSFSheet clonedSheet) {
+private void cloneExternalRelations(XSSFSheet srcSheet, XSSFSheet clonedSheet) {
     try {
         for (PackageRelationship pr : srcSheet.getPackagePart().getRelationships()) {
             if (pr.getTargetMode() == TargetMode.EXTERNAL) {
