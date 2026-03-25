@@ -44,7 +44,7 @@ public XSSFSheet cloneSheet(int sheetNum, String newName) {
 }
 
 /**
- * Validates that the new name or creates a new unique name if it it null
+ * Validates that the new name or creates a new unique name if it is null
  * 
  * @param newName
  * @return The new, valid sheet name
@@ -69,13 +69,13 @@ private String getNewValidSheetName(String newName) {
  * @return the sheet drawing to be cloned
  */
 private XSSFDrawing cloneSheetRelations(XSSFSheet srcSheet, XSSFSheet clonedSheet) {
-    // copy sheet's relations
     List<RelationPart> rels = srcSheet.getRelationParts();
-    // if the sheet being cloned has a drawing then remember it and re-create it too
+    // Copy all relations except for the drawing relation
     XSSFDrawing drawing = null;
     for (RelationPart rp : rels) {
         POIXMLDocumentPart r = rp.getDocumentPart();
-        // do not copy the drawing relationship, it will be re-created
+        // do not copy the drawing relationship, it will be re-created from the existing
+        // drawing object
         if (r instanceof XSSFDrawing) {
             drawing = (XSSFDrawing) r;
             continue;
