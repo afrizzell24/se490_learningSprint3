@@ -1,0 +1,28 @@
+# Maven build output
+/target/
+
+# Eclipse files
+.classpath
+.project
+.settings/
+
+# IntelliJ IDEA files
+/.idea/
+*.iml
+*.iws
+
+# macOS hidden files
+.DS_Store
+
+# Logs
+*.log
+
+# Temporary files
+*~
+*.tmp
+
+# GitHub Copilot local snippet history
+.copilot/ 
+
+# OS-specific
+Thumbs.db
