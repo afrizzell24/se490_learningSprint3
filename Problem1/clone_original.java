@@ -11,17 +11,7 @@
  * @throws POIXMLException if there were errors when cloning
  */
 public XSSFSheet cloneSheet(int sheetNum, String newName) {
-    validateSheetIndex(sheetNum);
-    XSSFSheet srcSheet = sheets.get(sheetNum);
 
-    if (newName == null) {
-        String srcName = srcSheet.getSheetName();
-        newName = getUniqueSheetName(srcName);
-    } else {
-        validateSheetName(newName);
-    }
-
-    XSSFSheet clonedSheet = createSheet(newName);
 
     // copy sheet's relations
     List<RelationPart> rels = srcSheet.getRelationParts();
@@ -90,4 +80,18 @@ public XSSFSheet cloneSheet(int sheetNum, String newName) {
         }
     }
     return clonedSheet;
+}
+
+private XSSFSheet makeSheet(int sheetNum, String newName) {
+    validateSheetIndex(sheetNum);
+    XSSFSheet srcSheet = sheets.get(sheetNum);
+
+    if (newName == null) {
+        String srcName = srcSheet.getSheetName();
+        newName = getUniqueSheetName(srcName);
+    } else {
+        validateSheetName(newName);
+    }
+
+    XSSFSheet clonedSheet = createSheet(newName);
 }
