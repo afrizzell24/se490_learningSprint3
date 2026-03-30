@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asterisk HTML5</title>
+    <style>
+        body {
+            background-color: #111;
+            color: #eee;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 40px;
+            user-select: none;
+        }
+
+        #game-container {
+            width: 600px;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        /* The internal canvas resolution is 300x200 to match the original C# code, 
+          but we scale it up to 600x400 with CSS so it's easier to see.
+          image-rendering: pixelated keeps the sharp 8-bit look.
+        */
+        canvas {
+            background-color: black;
+            width: 600px;
+            height: 400px;
+            image-rendering: pixelated; 
+            border: 2px solid #444;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        button {
+            background-color: #ddd;
+            border: 1px solid #999;
+            padding: 8px 16px;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        button:hover {
+            background-color: #fff;
+        }
+
+        button:disabled {
+            background-color: #555;
+            color: #888;
+            cursor: not-allowed;
+        }
+
+        .p1-color {
+            color: yellow;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div class="row">
+            <div id="lbl-level">Level 1</div>
+            <div id="lbl-record">Record: Level 1 by nobody</div>
+        </div>
+        <div class="row">
+            <div class="p1-color">Player 1: ENTER key</div>
+        </div>
+
+        <canvas id="gameCanvas" width="300" height="200"></canvas>
+
+        <div style="text-align: center;">
+            <button id="btn-start">1 Player</button>
+        </div>
+    </div>
+
+    <script>
+        // Game Constants & Elements
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const btnStart = document.getElementById('btn-start');
+        const lblLevel = document.getElementById('lbl-level');
+        const lblRecord = document.getElementById('lbl-record');
+
+        const WIDTH = canvas.width;
+        const HEIGHT = canvas.height;
+        const TIMER_INTERVAL = 20; // 20ms matches the original C# timer
+
+        // Game State Variables
+        let timer = null;
+        let nLevel = 0;
+        let nXPos = 0;
+        let nYPos1 = 0;
+        let isEnterDown = false;
+        
+        let nRecordLevel = parseInt(localStorage.getItem('Asterisk_Level')) || 1;
+        let recordName = localStorage.getItem('Asterisk_Name') || 'nobody';
+
+        // Initialize UI
+        showRecord();
+        drawBackground(); // Draw empty box before playing
+
+        // Input Listeners
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Enter') isEnterDown = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Enter') isEnterDown = false;
+        });
+
+        btnStart.addEventListener('click', () => {
+            btnStart.disabled = true;
+            nLevel = 0;
+            newLevel();
+            if (timer) clearInterval(timer);
+            timer = setInterval(onTimerTick, TIMER_INTERVAL);
+        });
+
+        function showRecord() {
+            localStorage.setItem('Asterisk_Level', nRecordLevel);
+            localStorage.setItem('Asterisk_Name', recordName);
+            lblRecord.innerText = `Record: Level ${nRecordLevel} by ${recordName}`;
+        }
+
+        function drawBackground() {
+            // Fill black background
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+            // Draw white border walls
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, WIDTH, 1);                  // Top wall
+            ctx.fillRect(0, HEIGHT - 1, WIDTH, 1);         // Bottom wall
+            
+            // Right wall with the exit gap (matches original C# logic)
+            // C# logic: Gap between (Height/2 - 15) and (Height/2 + 15)
+            const gapStart = (HEIGHT / 2) - 15;
+            const gapEnd = (HEIGHT / 2) + 15;
+            
+            ctx.fillRect(WIDTH - 1, 0, 1, gapStart);                 // Right wall (top half)
+            ctx.fillRect(WIDTH - 1, gapEnd, 1, HEIGHT - gapEnd);     // Right wall (bottom half)
+        }
+
+        function newLevel() {
+            nLevel++;
+            nXPos = 0;
+            nYPos1 = Math.floor(HEIGHT / 2); // Start in the middle
+            isEnterDown = false;
+            
+            lblLevel.innerText = `Level ${nLevel}`;
+            drawBackground();
+
+            // Draw 2x2 obstacles
+            // Increasing difficulty: add more blocks based on level
+            const nBlocks = nLevel * 5; 
+            ctx.fillStyle = 'white';
+            for (let i = 0; i < nBlocks; i++) {
+                // Keep blocks away from the immediate spawn area (left 10px) and edges
+                let rx = Math.floor(Math.random() * (WIDTH - 20)) + 10;
+                let ry = Math.floor(Math.random() * (HEIGHT - 20)) + 10;
+                ctx.fillRect(rx, ry, 2, 2);
+            }
+        }
+
+        function onTimerTick() {
+            nXPos++;
+            
+            // Enter key to rise (decrease Y), release to fall (increase Y)
+            if (isEnterDown) {
+                nYPos1--;
+            } else {
+                nYPos1++;
+            }
+
+            checkPosition();
+            
+            // Draw the trail
+            if (nXPos < WIDTH) {
+                ctx.fillStyle = 'yellow';
+                ctx.fillRect(nXPos, nYPos1, 1, 1);
+            }
+        }
+
+        function checkPosition() {
+            // Level complete - swept the whole screen
+            if (nXPos >= WIDTH) {
+                newLevel();
+                return;
+            }
+
+            // Pixel-perfect collision detection via canvas ImageData
+            // Reads the 1x1 pixel where the player is about to move
+            const pixelData = ctx.getImageData(nXPos, nYPos1, 1, 1).data;
+            
+            // pixelData holds [R, G, B, A]. If RGB is not 0,0,0, we hit something (wall, block, or trail)
+            const isBlack = (pixelData[0] === 0 && pixelData[1] === 0 && pixelData[2] === 0);
+
+            // Additionally check if player went off bounds top/bottom just in case
+            const outOfBounds = (nYPos1 < 0 || nYPos1 >= HEIGHT);
+
+            if (!isBlack || outOfBounds) {
+                crash();
+            }
+        }
+
+        function crash() {
+            clearInterval(timer);
+            timer = null;
+
+            // Small timeout allows the browser to render the crash pixel before alerting
+            setTimeout(() => {
+                if (nLevel > nRecordLevel) {
+                    let newName = prompt("High Score! Enter your name:", recordName);
+                    if (newName !== null && newName.trim() !== "") {
+                        recordName = newName.trim();
+                    }
+                    nRecordLevel = nLevel;
+                    showRecord();
+                } else {
+                    alert("Game Over!");
+                }
+                
+                btnStart.disabled = false;
+            }, 10);
+        }
+    </script>
+</body>
+</html>
