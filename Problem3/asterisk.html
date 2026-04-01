@@ -101,6 +101,7 @@
         let nXPos = 0;
         let nYPos1 = 0;
         let isEnterDown = false;
+        let isAnimating = false;
         
         let nRecordLevel = parseInt(localStorage.getItem('Asterisk_Level')) || 1;
         let recordName = localStorage.getItem('Asterisk_Name') || 'nobody';
@@ -191,11 +192,90 @@
                 ctx.fillRect(nXPos, nYPos1, 1, 1);
             }
         }
+//I added a fun level complete animation that bursts colorful particles from the exit and shows a pulsing "LEVEL COMPLETE!" message before starting the next level. 
+// It's a nice reward for reaching the exit and adds some visual flair to the game!
+// Gabriel Kiveu
+        function playLevelCompleteAnimation(callback) {
+            isAnimating = true;
+            const startTime = performance.now();
+            const duration = 1400; // ms
+
+            // Particles burst from the exit gap
+            const particles = [];
+            const exitX = WIDTH - 2;
+            const exitY = HEIGHT / 2;
+            for (let i = 0; i < 40; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 2 + 0.5;
+                particles.push({
+                    x: exitX, y: exitY,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    hue: Math.floor(Math.random() * 360),
+                    life: 1.0
+                });
+            }
+
+            function frame(now) {
+                const elapsed = now - startTime;
+                const t = Math.min(elapsed / duration, 1);
+
+                // Redraw existing canvas with a semi-transparent dark overlay so trail stays visible
+                ctx.fillStyle = 'rgba(0,0,0,0.18)';
+                ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+                // Animate particles
+                particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.04; // gentle gravity
+                    p.life -= 0.012;
+                    if (p.life > 0) {
+                        ctx.fillStyle = `hsla(${p.hue}, 100%, 60%, ${p.life})`;
+                        ctx.fillRect(Math.round(p.x), Math.round(p.y), 2, 2);
+                    }
+                });
+
+                // Pulsing "LEVEL COMPLETE!" text
+                const pulse = 0.7 + 0.3 * Math.sin(elapsed / 80);
+                const alpha = t < 0.85 ? 1 : 1 - (t - 0.85) / 0.15; // fade out near end
+                ctx.save();
+                ctx.globalAlpha = alpha * pulse;
+                ctx.font = 'bold 14px "Courier New", monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                // Glow effect via multiple shadow layers
+                ctx.shadowColor = `hsl(${(elapsed / 4) % 360}, 100%, 60%)`;
+                ctx.shadowBlur = 8;
+                ctx.fillStyle = 'white';
+                ctx.fillText(`LEVEL ${nLevel} COMPLETE!`, WIDTH / 2, HEIGHT / 2 - 10);
+                ctx.shadowBlur = 0;
+                ctx.font = '8px "Courier New", monospace';
+                ctx.globalAlpha = alpha * 0.8;
+                ctx.fillStyle = '#aaa';
+                ctx.fillText(`Next: Level ${nLevel + 1}`, WIDTH / 2, HEIGHT / 2 + 8);
+                ctx.restore();
+
+                if (t < 1) {
+                    requestAnimationFrame(frame);
+                } else {
+                    isAnimating = false;
+                    callback();
+                }
+            }
+
+            requestAnimationFrame(frame);
+        }
 
         function checkPosition() {
             // Level complete - swept the whole screen
             if (nXPos >= WIDTH) {
-                newLevel();
+                clearInterval(timer);
+                timer = null;
+                playLevelCompleteAnimation(() => {
+                    newLevel();
+                    timer = setInterval(onTimerTick, TIMER_INTERVAL);
+                });
                 return;
             }
 
