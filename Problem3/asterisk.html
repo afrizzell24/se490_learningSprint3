@@ -184,9 +184,10 @@
 
             checkPosition();
             
-            // Draw the trail
+            // Andrew Frizzell's modification, giving our dot a rainbow trail
             if (nXPos < WIDTH) {
-                ctx.fillStyle = 'yellow';
+                // We use the X position to cycle through the 360 degrees of the hue spectrum
+                ctx.fillStyle = `hsl(${nXPos % 360}, 100%, 50%)`;
                 ctx.fillRect(nXPos, nYPos1, 1, 1);
             }
         }
