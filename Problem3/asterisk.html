@@ -102,6 +102,9 @@
         let nYPos1 = 0;
         let isEnterDown = false;
         let isAnimating = false;
+        let trailPixels = [];
+        let staticObstacles = [];
+        let movingObstacles = [];
         
         let nRecordLevel = parseInt(localStorage.getItem('Asterisk_Level')) || 1;
         let recordName = localStorage.getItem('Asterisk_Name') || 'nobody';
@@ -157,20 +160,67 @@
             nXPos = 0;
             nYPos1 = Math.floor(HEIGHT / 2); // Start in the middle
             isEnterDown = false;
+            trailPixels = [];
+            createObstaclesForLevel();
             
             lblLevel.innerText = `Level ${nLevel}`;
+            drawScene();
+        }
+
+        function createObstaclesForLevel() {
+            staticObstacles = [];
+            movingObstacles = [];
+
+            const nBlocks = nLevel * 5;
+            for (let i = 0; i < nBlocks; i++) {
+                staticObstacles.push(createObstacle(2, 2));
+            }
+
+            if (nLevel > 5) {
+                const nMovingBlocks = Math.min(2 + Math.floor((nLevel - 5) / 2), 6);
+                for (let i = 0; i < nMovingBlocks; i++) {
+                    movingObstacles.push(createObstacle(3, 3, true));
+                }
+            }
+        }
+
+        function createObstacle(width, height, isMoving = false) {
+            const gapStart = (HEIGHT / 2) - 15;
+            const gapEnd = (HEIGHT / 2) + 15;
+            let x;
+            let y;
+
+            do {
+                x = Math.floor(Math.random() * (WIDTH - width - 20)) + 10;
+                y = Math.floor(Math.random() * (HEIGHT - height - 20)) + 10;
+            } while (isMoving && x > WIDTH - 25 && y >= gapStart && y <= gapEnd);
+
+            const obstacle = { x, y, width, height };
+
+            if (isMoving) {
+                obstacle.dx = Math.random() < 0.5 ? -1 : 1;
+                obstacle.dy = Math.random() < 0.5 ? -1 : 1;
+            }
+
+            return obstacle;
+        }
+
+        function drawScene() {
             drawBackground();
 
-            // Draw 2x2 obstacles
-            // Increasing difficulty: add more blocks based on level
-            const nBlocks = nLevel * 5; 
             ctx.fillStyle = 'white';
-            for (let i = 0; i < nBlocks; i++) {
-                // Keep blocks away from the immediate spawn area (left 10px) and edges
-                let rx = Math.floor(Math.random() * (WIDTH - 20)) + 10;
-                let ry = Math.floor(Math.random() * (HEIGHT - 20)) + 10;
-                ctx.fillRect(rx, ry, 2, 2);
-            }
+            staticObstacles.forEach(obstacle => {
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            });
+
+            movingObstacles.forEach(obstacle => {
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            });
+
+            trailPixels.forEach(pixel => {
+                ctx.fillStyle = pixel.color;
+                ctx.fillRect(pixel.x, pixel.y, 1, 1);
+            });
         }
 
         function onTimerTick() {
@@ -183,14 +233,40 @@
                 nYPos1++;
             }
 
+            if (nLevel > 5) {
+                updateMovingObstacles();
+            }
+
+            drawScene();
             checkPosition();
             
             // Andrew Frizzell's modification, giving our dot a rainbow trail
             if (nXPos < WIDTH) {
                 // We use the X position to cycle through the 360 degrees of the hue spectrum
-                ctx.fillStyle = `hsl(${nXPos % 360}, 100%, 50%)`;
+                const trailColor = `hsl(${nXPos % 360}, 100%, 50%)`;
+                trailPixels.push({ x: nXPos, y: nYPos1, color: trailColor });
+                ctx.fillStyle = trailColor;
                 ctx.fillRect(nXPos, nYPos1, 1, 1);
             }
+        }
+
+        // Samuel Schroeder
+        // Add moving obstacles, gradually add more as the level increases
+        function updateMovingObstacles() {
+            movingObstacles.forEach(obstacle => {
+                obstacle.x += obstacle.dx;
+                obstacle.y += obstacle.dy;
+
+                if (obstacle.x <= 1 || obstacle.x + obstacle.width >= WIDTH - 1) {
+                    obstacle.dx *= -1;
+                    obstacle.x = Math.max(1, Math.min(obstacle.x, WIDTH - obstacle.width - 1));
+                }
+
+                if (obstacle.y <= 1 || obstacle.y + obstacle.height >= HEIGHT - 1) {
+                    obstacle.dy *= -1;
+                    obstacle.y = Math.max(1, Math.min(obstacle.y, HEIGHT - obstacle.height - 1));
+                }
+            });
         }
 //I added a fun level complete animation that bursts colorful particles from the exit and shows a pulsing "LEVEL COMPLETE!" message before starting the next level. 
 // It's a nice reward for reaching the exit and adds some visual flair to the game!
