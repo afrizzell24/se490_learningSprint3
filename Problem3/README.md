@@ -35,15 +35,7 @@ The goal of the game is to survive as long as possible by passing through gaps i
 
 * Dynamic color changes for improved visual feedback
 * Real-time score counter and level display
-
-<!-- ### Added Feature – Dynamic Difficulty
-
-To enhance gameplay and provide an increasing challenge, dynamic difficulty scaling has been implemented:
-
-* **Obstacle speed increases** as the level increases
-* **Gap size decreases** as the level increases
-
-This ensures that each level becomes progressively more difficult, requiring faster reaction times and greater precision from the player. -->
+* Gap moves and shrinks as levels increase
 
 ---
 
@@ -75,22 +67,6 @@ The objective is to:
 
 ---
 
-## Development Notes
-
-This project was originally generated with the assistance of an AI tool and was subsequently reviewed, edited, and validated by the development team to ensure correctness and clarity.
-
----
-
-## Future Improvements (Optional Ideas)
-
-* Sound effects for collisions and level progression
-* Persistent high score tracking
-* Countdown before game start
-* Additional visual effects
-
----
-
 ## Authors
 
 Developed as a group project.
-Each team member contributed unique features and improvements to the game.

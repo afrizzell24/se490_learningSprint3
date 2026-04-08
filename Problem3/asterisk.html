@@ -105,6 +105,7 @@
         let trailPixels = [];
         let staticObstacles = [];
         let movingObstacles = [];
+        let gapY = HEIGHT / 2;
         
         let nRecordLevel = parseInt(localStorage.getItem('Asterisk_Level')) || 1;
         let recordName = localStorage.getItem('Asterisk_Name') || 'nobody';
@@ -136,6 +137,17 @@
             lblRecord.innerText = `Record: Level ${nRecordLevel} by ${recordName}`;
         }
 
+        // The gap on the right wall that the player must reach to complete the level
+        // The gap size decreases as levels increase, but never gets smaller than 12 pixels to keep it fair
+        // Connor Shepherd
+        function getGap() {
+            const gapSize = Math.max(12, 40 - nLevel * 2);
+            return {
+                start: gapY - gapSize / 2,
+                end: gapY + gapSize / 2
+            };
+        }
+
         function drawBackground() {
             // Fill black background
             ctx.fillStyle = 'black';
@@ -145,12 +157,9 @@
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, WIDTH, 1);                  // Top wall
             ctx.fillRect(0, HEIGHT - 1, WIDTH, 1);         // Bottom wall
-            
-            // Right wall with the exit gap (matches original C# logic)
-            // C# logic: Gap between (Height/2 - 15) and (Height/2 + 15)
-            const gapStart = (HEIGHT / 2) - 15;
-            const gapEnd = (HEIGHT / 2) + 15;
-            
+
+            const { start: gapStart, end: gapEnd } = getGap();
+        
             ctx.fillRect(WIDTH - 1, 0, 1, gapStart);                 // Right wall (top half)
             ctx.fillRect(WIDTH - 1, gapEnd, 1, HEIGHT - gapEnd);     // Right wall (bottom half)
         }
@@ -161,6 +170,10 @@
             nYPos1 = Math.floor(HEIGHT / 2); // Start in the middle
             isEnterDown = false;
             trailPixels = [];
+            // Randomize gap position each level (with padding so it's not unfair)
+            // Connor Shepherd
+            const margin = 25;
+            gapY = Math.floor(Math.random() * (HEIGHT - margin * 2)) + margin;
             createObstaclesForLevel();
             
             lblLevel.innerText = `Level ${nLevel}`;
@@ -185,8 +198,7 @@
         }
 
         function createObstacle(width, height, isMoving = false) {
-            const gapStart = (HEIGHT / 2) - 15;
-            const gapEnd = (HEIGHT / 2) + 15;
+            const { start: gapStart, end: gapEnd } = getGap();
             let x;
             let y;
 
