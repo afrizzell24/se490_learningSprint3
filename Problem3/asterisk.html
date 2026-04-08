@@ -106,6 +106,7 @@
         let staticObstacles = [];
         let movingObstacles = [];
         let gapY = HEIGHT / 2;
+        let isCountdownActive = false;
         
         let nRecordLevel = parseInt(localStorage.getItem('Asterisk_Level')) || 1;
         let recordName = localStorage.getItem('Asterisk_Name') || 'nobody';
@@ -128,7 +129,9 @@
             nLevel = 0;
             newLevel();
             if (timer) clearInterval(timer);
-            timer = setInterval(onTimerTick, TIMER_INTERVAL);
+            startRoundCountdown(() => {
+                timer = setInterval(onTimerTick, TIMER_INTERVAL);
+            });
         });
 
         function showRecord() {
@@ -262,6 +265,60 @@
             }
         }
 
+        // Retro pre-round countdown drawn directly on the game canvas.
+        function startRoundCountdown(onComplete) {
+            isCountdownActive = true;
+            const steps = ['3', '2', '1', 'GO!'];
+            const stepDuration = 420;
+            const totalDuration = steps.length * stepDuration;
+            const startTime = performance.now();
+
+            function drawCountdownOverlay(text, progress) {
+                const pulse = 1 + Math.sin(progress * Math.PI) * 0.22;
+                const alpha = 1 - progress * 0.35;
+
+                drawScene();
+
+                ctx.save();
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+                ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.globalAlpha = alpha;
+                ctx.shadowColor = 'white';
+                ctx.shadowBlur = 6;
+                ctx.fillStyle = 'white';
+                ctx.font = `bold ${Math.round(26 * pulse)}px "Courier New", monospace`;
+                ctx.fillText(text, WIDTH / 2, HEIGHT / 2 - 6);
+
+                ctx.shadowBlur = 0;
+                ctx.globalAlpha = 0.9;
+                ctx.font = '8px "Courier New", monospace';
+                ctx.fillStyle = '#cfcfcf';
+                ctx.fillText('GET READY', WIDTH / 2, HEIGHT / 2 + 12);
+                ctx.restore();
+            }
+
+            function frame(now) {
+                const elapsed = now - startTime;
+
+                if (elapsed >= totalDuration) {
+                    isCountdownActive = false;
+                    drawScene();
+                    onComplete();
+                    return;
+                }
+
+                const currentStep = Math.floor(elapsed / stepDuration);
+                const stepProgress = (elapsed % stepDuration) / stepDuration;
+                drawCountdownOverlay(steps[currentStep], stepProgress);
+                requestAnimationFrame(frame);
+            }
+
+            requestAnimationFrame(frame);
+        }
+
         // Samuel Schroeder
         // Add moving obstacles, gradually add more as the level increases
         function updateMovingObstacles() {
@@ -362,7 +419,9 @@
                 timer = null;
                 playLevelCompleteAnimation(() => {
                     newLevel();
-                    timer = setInterval(onTimerTick, TIMER_INTERVAL);
+                    startRoundCountdown(() => {
+                        timer = setInterval(onTimerTick, TIMER_INTERVAL);
+                    });
                 });
                 return;
             }
