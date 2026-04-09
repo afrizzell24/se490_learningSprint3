@@ -48,6 +48,7 @@
             font-weight: bold;
             cursor: pointer;
             margin-top: 15px;
+            margin-right: 8px;
         }
 
         button:hover {
@@ -80,6 +81,7 @@
 
         <div style="text-align: center;">
             <button id="btn-start">1 Player</button>
+            <button id="btn-sound">Sound: ON</button>
         </div>
     </div>
 
@@ -88,6 +90,7 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         const btnStart = document.getElementById('btn-start');
+        const btnSound = document.getElementById('btn-sound');
         const lblLevel = document.getElementById('lbl-level');
         const lblRecord = document.getElementById('lbl-record');
 
@@ -107,6 +110,8 @@
         let movingObstacles = [];
         let gapY = HEIGHT / 2;
         let isCountdownActive = false;
+        let soundEnabled = localStorage.getItem('Asterisk_Sound') !== 'off';
+        let audioCtx = null;
         
         let nRecordLevel = parseInt(localStorage.getItem('Asterisk_Level')) || 1;
         let recordName = localStorage.getItem('Asterisk_Name') || 'nobody';
@@ -114,6 +119,7 @@
         // Initialize UI
         showRecord();
         drawBackground(); // Draw empty box before playing
+        updateSoundButtonLabel();
 
         // Input Listeners
         window.addEventListener('keydown', (e) => {
@@ -133,6 +139,46 @@
                 timer = setInterval(onTimerTick, TIMER_INTERVAL);
             });
         });
+
+        btnSound.addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            localStorage.setItem('Asterisk_Sound', soundEnabled ? 'on' : 'off');
+            updateSoundButtonLabel();
+            if (soundEnabled) {
+                playBeep(620, 0.05, 'square', 0.04);
+            }
+        });
+
+        function updateSoundButtonLabel() {
+            btnSound.innerText = `Sound: ${soundEnabled ? 'ON' : 'OFF'}`;
+        }
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function playBeep(freq, duration, type = 'square', volume = 0.03) {
+            if (!soundEnabled) return;
+            const ac = getAudioContext();
+            const now = ac.currentTime;
+            const osc = ac.createOscillator();
+            const gain = ac.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, now);
+            gain.gain.setValueAtTime(0.0001, now);
+            gain.gain.exponentialRampToValueAtTime(volume, now + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+            osc.connect(gain);
+            gain.connect(ac.destination);
+            osc.start(now);
+            osc.stop(now + duration + 0.01);
+        }
 
         function showRecord() {
             localStorage.setItem('Asterisk_Level', nRecordLevel);
@@ -274,6 +320,13 @@
             const startTime = performance.now();
 
             function drawCountdownOverlay(text, progress) {
+                if (progress < 0.08) {
+                    if (text === 'GO!') {
+                        playBeep(820, 0.08, 'triangle', 0.05);
+                    } else {
+                        playBeep(520, 0.06, 'square', 0.04);
+                    }
+                }
                 const pulse = 1 + Math.sin(progress * Math.PI) * 0.22;
                 const alpha = 1 - progress * 0.35;
 
@@ -342,6 +395,8 @@
 // Gabriel Kiveu
         function playLevelCompleteAnimation(callback) {
             isAnimating = true;
+            playBeep(740, 0.07, 'triangle', 0.05);
+            setTimeout(() => playBeep(980, 0.08, 'triangle', 0.05), 90);
             const startTime = performance.now();
             const duration = 1400; // ms
 
@@ -444,8 +499,9 @@
         function crash() {
             clearInterval(timer);
             timer = null;
+            playBeep(180, 0.18, 'sawtooth', 0.06);
 
-            // Small timeout allows the browser to render the crash pixel before alerting
+            // Give the crash sound time to play before alert/prompt blocks the UI thread.
             setTimeout(() => {
                 if (nLevel > nRecordLevel) {
                     let newName = prompt("High Score! Enter your name:", recordName);
@@ -459,7 +515,7 @@
                 }
                 
                 btnStart.disabled = false;
-            }, 10);
+            }, 230);
         }
     </script>
 </body>
