@@ -140,6 +140,7 @@
             });
         });
 
+        // Thabang: Add toggleable game sound effects for countdown and crashes
         btnSound.addEventListener('click', () => {
             soundEnabled = !soundEnabled;
             localStorage.setItem('Asterisk_Sound', soundEnabled ? 'on' : 'off');
@@ -311,7 +312,7 @@
             }
         }
 
-        // Retro pre-round countdown drawn directly on the game canvas.
+        // Matt: Retro pre-round countdown drawn directly on the game canvas.
         function startRoundCountdown(onComplete) {
             isCountdownActive = true;
             const steps = ['3', '2', '1', 'GO!'];
