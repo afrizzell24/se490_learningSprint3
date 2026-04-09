@@ -116,12 +116,12 @@ private void cloneExternalRelations(XSSFSheet srcSheet, XSSFSheet clonedSheet) {
  * @param clonedSheet
  */
 private void cloneSheetData(XSSFSheet srcSheet, XSSFSheet clonedSheet) {
-    try (ByteArrayOutputStream src_out = new ByteArrayOutputStream()) {
+    try (ByteArrayOutputStream srcOut = new ByteArrayOutputStream()) {
         // Write the old sheet data to a strem
         srcSheet.write(src_out);
-        try (ByteArrayInputStream src_in = new ByteArrayInputStream(src_out.toByteArray())) {
+        try (ByteArrayInputStream srcIn = new ByteArrayInputStream(src_out.toByteArray())) {
             // Read that data from the stream to the new sheet
-            clonedSheet.read(src_in);
+            clonedSheet.read(srcIn);
         }
     } catch (IOException e) {
         throw new POIXMLException("Failed to clone sheet data", e);
